@@ -35,9 +35,6 @@ class User(db.Model):
     mfa_enabled = db.Column(db.Boolean, default=False, nullable=False)
 
     # --- MFA (Email OTP) ---
-    # Only a hash of the most recently issued email OTP is stored (never the
-    # plaintext code), alongside its expiry and a small attempt counter to
-    # slow down brute-forcing of the 6-digit code.
     email_otp_hash = db.Column(db.String(255), nullable=True)
     email_otp_expires_at = db.Column(db.DateTime, nullable=True)
     email_otp_attempts = db.Column(db.Integer, default=0, nullable=False)
@@ -54,11 +51,20 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     last_login_at = db.Column(db.DateTime, nullable=True)
 
+    # --- Relationships with Cascade Delete ---
     history = db.relationship(
         "PasswordHistory",
         backref="user",
         lazy=True,
         order_by="PasswordHistory.created_at.desc()",
+        cascade="all, delete-orphan",
+    )
+
+    # ADDED: Cascade delete for user notes to fix ForeignKeyViolation when deleting users
+    notes = db.relationship(
+        "SecureNote",
+        backref="owner",
+        lazy=True,
         cascade="all, delete-orphan",
     )
 
@@ -73,12 +79,12 @@ class PasswordHistory(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    
+
+
 class SecureNote(db.Model):
     __tablename__ = "secure_notes"
 
     id = db.Column(db.Integer, primary_key=True)
-    # Linked to your users table using 'users.id' to match your __tablename__
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     title = db.Column(db.String(100), nullable=False)
     content = db.Column(db.Text, nullable=False)
