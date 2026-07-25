@@ -1,10 +1,5 @@
-"""
-mailer.py
-Minimal email-sending helper used to deliver one-time passcodes (email OTP)
-as an alternative second factor to TOTP.
-"""
-
 import os
+import socket
 import smtplib
 import ssl
 from email.message import EmailMessage
@@ -20,7 +15,6 @@ MAIL_FROM = os.environ.get("MAIL_FROM", "")
 def send_email_otp(to_email: str, code: str, minutes_valid: int) -> None:
     subject = "Your SecureAuth Verification Code"
     
-    # Text-only fallback for older email clients
     text_body = (
         f"Hello,\n\n"
         f"Your one-time verification code is: {code}\n\n"
@@ -28,7 +22,6 @@ def send_email_otp(to_email: str, code: str, minutes_valid: int) -> None:
         f"If you did not request this code, you can safely ignore this email."
     )
 
-    # High-end, clean professional HTML layout matching dark/green theme
     html_body = f"""
     <!DOCTYPE html>
     <html>
@@ -60,7 +53,6 @@ def send_email_otp(to_email: str, code: str, minutes_valid: int) -> None:
     </html>
     """
 
-    # If variables aren't active in the environment yet, display inside terminal nicely
     if not SMTP_USERNAME or not SMTP_PASSWORD:
         print("=" * 60)
         print(f"[DEV MODE - Missing SMTP Credentials] Email OTP for {to_email}")
@@ -77,14 +69,23 @@ def send_email_otp(to_email: str, code: str, minutes_valid: int) -> None:
     msg.add_alternative(html_body, subtype="html")
 
     context = ssl.create_default_context()
+
+    # --- IPv4 FORCE FIX FOR RENDER ---
+    # Forces DNS resolution to return IPv4 addresses (AF_INET) instead of unroutable IPv6 addresses
+    old_getaddrinfo = socket.getaddrinfo
+    def new_getaddrinfo(*args, **kwargs):
+        responses = old_getaddrinfo(*args, **kwargs)
+        return [response for response in responses if response[0] == socket.AF_INET]
+
+    socket.getaddrinfo = new_getaddrinfo
+    # ---------------------------------
+
     try:
-        # Port 465 uses direct SSL
         if SMTP_PORT == 465:
             with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, context=context, timeout=15) as server:
                 server.login(SMTP_USERNAME, SMTP_PASSWORD)
                 server.send_message(msg)
         else:
-            # Port 587 uses explicit STARTTLS handshaking (Optimal for Render)
             with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
                 server.ehlo()
                 if SMTP_USE_TLS:
@@ -95,3 +96,6 @@ def send_email_otp(to_email: str, code: str, minutes_valid: int) -> None:
     except Exception as e:
         print(f"\n!!! SMTP ERROR OCCURRED: {e} !!!\n")
         raise e
+    finally:
+        # Restore original getaddrinfo
+        socket.getaddrinfo = old_getaddrinfo
