@@ -1,0 +1,204 @@
+{% extends "base.html" %} {% block title %}IAM Master Console{% endblock %} {%
+block content %}
+<div class="page">
+  <div class="dash-head">
+    <div>
+      <span
+        class="step-tag"
+        style="
+          background: rgba(245, 166, 35, 0.1);
+          border-color: rgba(245, 166, 35, 0.3);
+          color: var(--warn);
+        "
+        >Active Secure Environment Terminal</span
+      >
+      <h1 class="auth-title">Database CRUD Workspace</h1>
+    </div>
+    <a
+      href="{{ url_for('admin_logout') }}"
+      class="btn-secondary"
+      style="color: var(--danger); border-color: rgba(255, 92, 108, 0.2)"
+      >Disconnect Terminal</a
+    >
+  </div>
+
+  <!-- CREATE USER SECTION -->
+  <section class="auth-card" style="margin-bottom: 30px">
+    <h3 style="margin-top: 0">Provision Brand New User (Create)</h3>
+    <form
+      method="post"
+      action="{{ url_for('admin_dashboard') }}"
+      style="
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        align-items: end;
+      "
+    >
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <input type="hidden" name="action" value="create" />
+
+      <label class="field" style="margin: 0">
+        <span class="field-label">Username</span>
+        <input
+          type="text"
+          name="username"
+          required
+          placeholder="e.g. alex_secure"
+        />
+      </label>
+      <label class="field" style="margin: 0">
+        <span class="field-label">Email Address</span>
+        <input
+          type="email"
+          name="email"
+          required
+          placeholder="user@domain.com"
+          style="
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 12px;
+            border-radius: 10px;
+          "
+        />
+      </label>
+      <label class="field" style="margin: 0">
+        <span class="field-label">Temporary Password</span>
+        <input
+          type="password"
+          name="password"
+          required
+          placeholder="••••••••"
+        />
+      </label>
+      <button
+        type="submit"
+        class="btn-primary"
+        style="height: 46px; background: var(--accent)"
+      >
+        Deploy Identity
+      </button>
+    </form>
+  </section>
+
+  <!-- READ, UPDATE, DELETE USER MODULE -->
+  <section class="auth-card">
+    <h3 style="margin-top: 0">
+      Database Entry Directory (Read / Update / Delete)
+    </h3>
+    <div style="overflow-x: auto">
+      <table
+        style="
+          width: 100%;
+          border-collapse: collapse;
+          text-align: left;
+          font-size: 0.9rem;
+        "
+      >
+        <thead>
+          <tr
+            style="border-bottom: 1px solid var(--border); color: var(--muted)"
+          >
+            <th style="padding: 12px">Database Key (ID)</th>
+            <th style="padding: 12px">User Identity Profile</th>
+            <th style="padding: 12px">Administrative Actions Override</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for user in users %}
+          <tr style="border-bottom: 1px solid var(--border)">
+            <td
+              style="
+                padding: 12px;
+                font-family: var(--font-mono);
+                color: var(--accent-2);
+              "
+            >
+              USER_DATA_#{{ user.id }}
+            </td>
+            <td style="padding: 12px">
+              <strong style="font-size: 1rem">{{ user.username }}</strong>
+              <br />
+              <span style="color: var(--muted); font-size: 0.8rem"
+                >{{ user.email }}</span
+              >
+            </td>
+            <td style="padding: 12px; display: flex; gap: 8px">
+              <!-- UPDATE ACTIONS -->
+              <form
+                method="post"
+                action="{{ url_for('admin_update_user', user_id=user.id) }}"
+                style="display: inline"
+              >
+                <input
+                  type="hidden"
+                  name="csrf_token"
+                  value="{{ csrf_token() }}"
+                />
+                <button
+                  type="submit"
+                  name="action_type"
+                  value="reset_password"
+                  class="btn-secondary"
+                  style="padding: 6px 12px; font-size: 0.75rem"
+                >
+                  Reset Pass
+                </button>
+                {% if user.failed_attempts and user.failed_attempts > 0 %}
+                <button
+                  type="submit"
+                  name="action_type"
+                  value="unlock"
+                  class="btn-secondary"
+                  style="
+                    padding: 6px 12px;
+                    font-size: 0.75rem;
+                    border-color: var(--warn);
+                    color: var(--warn);
+                  "
+                >
+                  Unlock Account
+                </button>
+                {% endif %}
+              </form>
+
+              <!-- DELETE ACTION -->
+              <form
+                method="post"
+                action="{{ url_for('admin_delete_user', user_id=user.id) }}"
+                style="display: inline"
+              >
+                <input
+                  type="hidden"
+                  name="csrf_token"
+                  value="{{ csrf_token() }}"
+                />
+                <button
+                  type="submit"
+                  class="btn-secondary"
+                  style="
+                    padding: 6px 12px;
+                    font-size: 0.75rem;
+                    color: var(--danger);
+                    border-color: rgba(255, 92, 108, 0.2);
+                  "
+                  onclick="
+                    return confirm(
+                      'Securely erase this identity completely from disk?',
+                    );
+                  "
+                >
+                  Purge Identity
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

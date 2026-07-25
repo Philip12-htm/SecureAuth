@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Set up two-factor authentication · SecureAuth{% endblock %}
+{% block content %}
+<div class="auth-grid auth-grid--single">
+  <section class="auth-card" data-animate="rise">
+    <span class="step-tag">Step 2 of 2</span>
+    <h1 class="auth-title">Set up two-factor authentication</h1>
+    <p class="auth-sub">Scan this QR code with an authenticator app (Google Authenticator, Authy, 1Password, etc.), then enter the 6-digit code it generates to confirm.</p>
+
+    <div class="qr-wrap">
+      <img src="{{ url_for('mfa_qrcode') }}" alt="MFA setup QR code" width="180" height="180" class="qr-img">
+      <div class="qr-fallback">
+        <span class="field-label">Can't scan? Add the account manually:</span>
+        <p class="field-hint">Type: <strong>Time-based</strong>. Key: <code class="secret-code">{{ secret }}</code></p>
+      </div>
+    </div>
+
+    <form method="post" action="{{ url_for('mfa_setup') }}" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="field">
+        <span class="field-label">6-digit code</span>
+        <input type="text" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required autofocus class="otp-input">
+        <span class="field-hint">Enter the current code shown in your app — it refreshes every 30 seconds.</span>
+      </label>
+      <button type="submit" class="btn-primary btn-block">Confirm &amp; enable MFA</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

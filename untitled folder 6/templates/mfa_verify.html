@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Verify it's you · SecureAuth{% endblock %}
+{% block content %}
+<div class="auth-grid auth-grid--single">
+  <section class="auth-card" data-animate="rise">
+    <span class="step-tag">Step 2 of 2</span>
+    <h1 class="auth-title">Enter your authentication code</h1>
+
+    <div class="mfa-tabs" role="tablist">
+      <button type="button" class="mfa-tab {{ 'active' if method == 'app' else '' }}" data-method="app" id="tab-app">Authenticator app</button>
+      <button type="button" class="mfa-tab {{ 'active' if method == 'email' else '' }}" data-method="email" id="tab-email">Email code</button>
+    </div>
+
+    <p class="auth-sub" id="mfa-instructions">
+      {% if method == 'email' %}
+        We can email a 6-digit code to <strong>{{ masked_email }}</strong>. Click "Send code" below, then enter it here.
+      {% else %}
+        Open your authenticator app for <strong>{{ username }}</strong> and enter the current 6-digit code.
+      {% endif %}
+    </p>
+
+    <div id="email-otp-controls" class="{{ '' if method == 'email' else 'hidden' }}">
+      <button type="button" id="send-email-otp" class="btn-secondary btn-block">Send code to my email</button>
+      <p id="email-otp-status" class="field-hint" aria-live="polite"></p>
+    </div>
+
+    <form method="post" action="{{ url_for('mfa_verify') }}" novalidate id="mfa-verify-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="method" id="mfa-method-input" value="{{ method }}">
+      <label class="field">
+        <span class="field-label">6-digit code</span>
+        <input type="text" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required autofocus class="otp-input">
+      </label>
+      <button type="submit" class="btn-primary btn-block">Verify &amp; sign in</button>
+    </form>
+  </section>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const tabApp = document.getElementById('tab-app');
+  const tabEmail = document.getElementById('tab-email');
+  const methodInput = document.getElementById('mfa-method-input');
+  const instructions = document.getElementById('mfa-instructions');
+  const emailControls = document.getElementById('email-otp-controls');
+  const sendBtn = document.getElementById('send-email-otp');
+  const statusEl = document.getElementById('email-otp-status');
+  const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
+  function setMethod(method) {
+    methodInput.value = method;
+    tabApp.classList.toggle('active', method === 'app');
+    tabEmail.classList.toggle('active', method === 'email');
+    emailControls.classList.toggle('hidden', method !== 'email');
+  }
+
+  tabApp.addEventListener('click', () => setMethod('app'));
+  tabEmail.addEventListener('click', () => setMethod('email'));
+
+  if (sendBtn) {
+    sendBtn.addEventListener('click', async () => {
+      sendBtn.disabled = true;
+      statusEl.textContent = 'Sending…';
+      try {
+        const resp = await fetch("{{ url_for('mfa_send_email_otp') }}", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'csrf_token=' + encodeURIComponent(csrfToken),
+        });
+        const data = await resp.json();
+        if (data.ok) {
+          statusEl.textContent = `Code sent to ${data.masked_email}. It expires in ${data.valid_minutes} minutes.`;
+        } else {
+          statusEl.textContent = data.error || 'Could not send code.';
+        }
+      } catch (e) {
+        statusEl.textContent = 'Network error sending code. Please try again.';
+      } finally {
+        setTimeout(() => { sendBtn.disabled = false; }, 3000);
+      }
+    });
+  }
+})();
+</script>
+{% endblock %}

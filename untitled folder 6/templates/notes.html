@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Secure Notes · SecureAuth{% endblock %}
+{% block content %}
+<div class="auth-grid auth-grid--single">
+  <section class="auth-card">
+    <h2 class="auth-title">Secure Notes Manager (CRUD)</h2>
+    <p class="auth-sub">Create, view, update, and delete access-controlled workspace records.</p>
+
+    <!-- Create Form -->
+    <form method="post" action="{{ url_for('manage_notes') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="field">
+        <span class="field-label">Note Title</span>
+        <input type="text" name="title" required placeholder="Confidential server keys...">
+      </label>
+      <label class="field">
+        <span class="field-label">Note Content</span>
+        <input type="text" name="content" required placeholder="Type secrets here...">
+      </label>
+      <button type="submit" class="btn-primary btn-block">Save Note</button>
+    </form>
+
+    <hr style="border: 0; border-top: 1px solid var(--border); margin: 24px 0;">
+
+    <!-- Read, Update, Delete Records -->
+    <div style="display: flex; flex-direction: column; gap: 14px;">
+      {% for note in notes %}
+        <div style="background: var(--bg); border: 1px solid var(--border); padding: 14px; border-radius: 10px;">
+          <form method="post" action="{{ url_for('edit_note', note_id=note.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="text" name="title" value="{{ note.title }}" style="font-weight:bold; margin-bottom: 6px;">
+            <input type="text" name="content" value="{{ note.content }}">
+            
+            <div style="display: flex; gap: 8px; margin-top: 10px;">
+              <button type="submit" class="btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">Update</button>
+          </form>
+          
+          <form method="post" action="{{ url_for('delete_note', note_id=note.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-secondary" style="padding: 6px 12px; font-size: 0.8rem; color: var(--danger); border-color: rgba(255,92,108,0.2);">Delete</button>
+          </form>
+            </div>
+        </div>
+      {% else %}
+        <p style="color: var(--muted); text-align: center; font-size: 0.9rem;">No secure records found.</p>
+      {% endfor %}
+    </div>
+    
+    <p class="auth-switch"><a href="{{ url_for('dashboard') }}">Back to Dashboard</a></p>
+  </section>
+</div>
+{% endblock %}

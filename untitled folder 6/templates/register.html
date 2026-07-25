@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Create account · SecureAuth{% endblock %}
+{% block content %}
+<div class="auth-grid">
+
+  <section class="auth-card" data-animate="rise">
+    <h1 class="auth-title">Create your account</h1>
+    <p class="auth-sub">Registration is protected by live strength scoring, a human-verification challenge, and mandatory two-factor setup on the next step.</p>
+
+    <form method="post" action="{{ url_for('register') }}" novalidate id="register-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <label class="field">
+        <span class="field-label">Username</span>
+        <input type="text" name="username" id="username" value="{{ username or '' }}" autocomplete="username" required minlength="3" maxlength="30" placeholder="e.g. jane_doe">
+      </label>
+
+      <label class="field">
+        <span class="field-label">Email address</span>
+        <input type="email" name="email" id="email" value="{{ email or '' }}" autocomplete="email" required maxlength="255" placeholder="you@example.com">
+        <span class="field-hint">Used for account recovery and as an optional email-code sign-in method.</span>
+      </label>
+
+      <label class="field">
+        <span class="field-label">Password</span>
+        <div class="password-wrap">
+          <input type="password" name="password" id="password" autocomplete="new-password" required minlength="8" placeholder="Choose a strong password">
+          <button type="button" class="reveal-btn" data-target="password" aria-label="Show password">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/></svg>
+          </button>
+        </div>
+      </label>
+
+      <div class="strength-block" aria-live="polite">
+        <div class="strength-meter">
+          <div class="strength-bar" id="strength-bar" data-score="0"></div>
+        </div>
+        <div class="strength-row">
+          <span class="strength-label" id="strength-label">Strength: —</span>
+          <span class="strength-entropy" id="strength-entropy"></span>
+        </div>
+        <ul class="strength-feedback" id="strength-feedback"></ul>
+      </div>
+
+      <label class="field">
+        <span class="field-label">Confirm password</span>
+        <input type="password" name="confirm_password" id="confirm_password" autocomplete="new-password" required placeholder="Re-enter your password">
+        <span class="field-hint" id="match-hint"></span>
+      </label>
+
+      <div class="captcha-block">
+        <span class="field-label">Verify you're human</span>
+        <div class="captcha-row">
+          <img id="captcha-img" src="{{ captcha_image }}" alt="CAPTCHA challenge image" width="260" height="90">
+          <button type="button" id="captcha-refresh" class="icon-btn" title="Get a new challenge" aria-label="Refresh CAPTCHA">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 11A8 8 0 1 0 18.5 16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M20 5v6h-6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+        <input type="text" name="captcha" id="captcha" required placeholder="Enter the characters above" autocomplete="off" maxlength="6" class="captcha-input">
+      </div>
+
+      <button type="submit" class="btn-primary btn-block">Create account</button>
+    </form>
+
+    <p class="auth-switch">Already have an account? <a href="{{ url_for('login') }}">Sign in</a></p>
+  </section>
+
+  <aside class="auth-side" data-animate="fade">
+    <div class="shield-card">
+      <svg id="shield-svg" viewBox="0 0 120 132" width="120" height="132" fill="none">
+        <defs>
+          <linearGradient id="shieldGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop id="shieldStop1" offset="0%" stop-color="#2DD4BF"/>
+            <stop id="shieldStop2" offset="100%" stop-color="#5B8DEF"/>
+          </linearGradient>
+        </defs>
+        <path d="M60 4 L112 22 V62 C112 96 90 118 60 128 C30 118 8 96 8 62 V22 Z" stroke="#232E3D" stroke-width="2" fill="#161E2B"/>
+        <path id="shield-fill" d="M60 4 L112 22 V62 C112 96 90 118 60 128 C30 118 8 96 8 62 V22 Z" fill="url(#shieldGrad)" opacity="0" />
+        <path d="M60 4 L112 22 V62 C112 96 90 118 60 128 C30 118 8 96 8 62 V22 Z" stroke="#2DD4BF" stroke-width="1" opacity="0.35" fill="none"/>
+      </svg>
+      <p class="shield-caption" id="shield-caption">Start typing a password to see its live security rating.</p>
+    </div>
+    <div class="info-list">
+      <div class="info-item"><span class="info-tag">01</span>Length beats complexity — NIST SP 800-63B recommends long passphrases over forced symbol rules.</div>
+      <div class="info-item"><span class="info-tag">02</span>Argon2id hashing with a unique random salt is applied before anything reaches the database.</div>
+      <div class="info-item"><span class="info-tag">03</span>Step two of registration sets up authenticator-app based two-factor login.</div>
+    </div>
+  </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/strength.js') }}"></script>
+{% endblock %}

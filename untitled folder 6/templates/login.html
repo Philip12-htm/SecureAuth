@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Sign in · SecureAuth{% endblock %}
+{% block content %}
+<div class="auth-grid auth-grid--single">
+  <section class="auth-card" data-animate="rise">
+    <h1 class="auth-title">Welcome back</h1>
+    <p class="auth-sub">Enter your credentials. You'll be asked for your 6-digit authenticator code next.</p>
+
+    <form method="post" action="{{ url_for('login') }}" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <label class="field">
+        <span class="field-label">Username</span>
+        <input type="text" name="username" value="{{ username or '' }}" autocomplete="username" required autofocus>
+      </label>
+
+      <label class="field">
+        <span class="field-label">Password</span>
+        <div class="password-wrap">
+          <input type="password" name="password" id="login-password" autocomplete="current-password" required>
+          <button type="button" class="reveal-btn" data-target="login-password" aria-label="Show password">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.6"/></svg>
+          </button>
+        </div>
+      </label>
+
+      <button type="submit" class="btn-primary btn-block">Continue</button>
+    </form>
+
+    <p class="auth-switch">Need an account? <a href="{{ url_for('register') }}">Create one</a></p>
+  </section>
+</div>
+{% endblock %}

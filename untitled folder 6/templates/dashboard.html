@@ -1,0 +1,333 @@
+{% extends "base.html" %} {% block title %}Security Hub · SecureAuth{% endblock
+%} {% block content %}
+<div class="dash">
+  <!-- Header Banner -->
+  <div class="dash-head" data-animate="rise">
+    <div>
+      <span class="step-tag">Authenticated Session</span>
+      <h1 class="auth-title">Welcome back, {{ user.username }}</h1>
+      <p class="auth-sub">
+        {{ user.email }} &middot; Real-time account security posture
+      </p>
+    </div>
+    <div
+      class="dash-actions"
+      style="display: flex; gap: 10px; align-items: center"
+    >
+      <a
+        href="{{ url_for('manage_notes') }}"
+        class="btn-primary"
+        style="
+          padding: 10px 16px;
+          text-decoration: none;
+          border-radius: 6px;
+          font-weight: 500;
+        "
+        >🔒 Secure Vault</a
+      >
+      <a href="{{ url_for('change_password') }}" class="btn-secondary"
+        >Change Password</a
+      >
+    </div>
+  </div>
+
+  <!-- Security Score Banner -->
+  <div
+    class="stat-card"
+    data-animate="rise"
+    style="
+      margin-bottom: 24px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 20px;
+      border-radius: 12px;
+    "
+  >
+    <div
+      style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      "
+    >
+      <div>
+        <h3 style="margin: 0; font-size: 1.1rem; color: #e2e8f0">
+          Security Health Index
+        </h3>
+        <small style="color: #94a3b8">Automated posture evaluation</small>
+      </div>
+      <span
+        id="score-text"
+        data-color="{{ score_color }}"
+        style="font-size: 1.25rem; font-weight: 700"
+      >
+        {{ score }} / 100 &middot; {{ score_label }}
+      </span>
+    </div>
+    <div
+      style="
+        width: 100%;
+        background: rgba(255, 255, 255, 0.1);
+        height: 10px;
+        border-radius: 5px;
+        overflow: hidden;
+      "
+    >
+      <div
+        id="score-bar"
+        data-score="{{ score }}"
+        data-color="{{ score_color }}"
+        style="height: 100%; transition: width 0.5s ease"
+      ></div>
+    </div>
+  </div>
+
+  <!-- Primary Security Grid -->
+  <div class="card-grid">
+    <!-- 1. MFA Status -->
+    <div class="stat-card" data-animate="rise" style="--delay: 0">
+      <span
+        class="stat-icon {% if user.mfa_enabled %}ok{% else %}warn{% endif %}"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M9 12l2 2 4-4"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <circle
+            cx="12"
+            cy="12"
+            r="9"
+            stroke="currentColor"
+            stroke-width="1.6"
+          />
+        </svg>
+      </span>
+      <h3>Multi-Factor Auth</h3>
+      <p style="margin-top: 8px">
+        {% if user.mfa_enabled %}
+        <span
+          style="
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+          "
+          >🟢 Active (TOTP)</span
+        >
+        {% else %}
+        <span
+          style="
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+          "
+          >🟡 Not Configured</span
+        >
+        {% endif %}
+      </p>
+      <small style="color: #94a3b8; display: block; margin-top: 12px"
+        >Email OTP available for recovery.</small
+      >
+    </div>
+
+    <!-- 2. Password Age -->
+    <div class="stat-card" data-animate="rise" style="--delay: 0.06s">
+      <span class="stat-icon {% if expired %}warn{% else %}ok{% endif %}">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M12 7v5l3 3"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+          />
+          <circle
+            cx="12"
+            cy="12"
+            r="9"
+            stroke="currentColor"
+            stroke-width="1.6"
+          />
+        </svg>
+      </span>
+      <h3>Password Rotation</h3>
+      <p style="margin-top: 8px">
+        {% if expired %}
+        <span
+          style="
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+          "
+          >🔴 Rotation Overdue</span
+        >
+        {% else %}
+        <span
+          style="
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+          "
+          >🟢 Updated {{ age_days }}d ago</span
+        >
+        {% endif %}
+      </p>
+      <small style="color: #94a3b8; display: block; margin-top: 12px">
+        {% if expired %}Action required immediately.{% else %}{{ days_left }}
+        days remaining in policy.{% endif %}
+      </small>
+    </div>
+
+    <!-- 3. Password History & Protection -->
+    <div class="stat-card" data-animate="rise" style="--delay: 0.12s">
+      <span class="stat-icon ok">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <rect
+            x="4"
+            y="10"
+            width="16"
+            height="10"
+            rx="2"
+            stroke="currentColor"
+            stroke-width="1.6"
+          />
+          <path
+            d="M8 10V7a4 4 0 0 1 8 0v3"
+            stroke="currentColor"
+            stroke-width="1.6"
+          />
+        </svg>
+      </span>
+      <h3>Reuse Guard</h3>
+      <p
+        style="
+          margin-top: 8px;
+          font-size: 1.1rem;
+          font-weight: 600;
+          color: #f8fafc;
+        "
+      >
+        {{ history_count }} / 5 Hashes Retained
+      </p>
+      <small style="color: #94a3b8; display: block; margin-top: 8px"
+        >Prevents recycling past credentials.</small
+      >
+    </div>
+
+    <!-- 4. Active Session Metadata -->
+    <div class="stat-card" data-animate="rise" style="--delay: 0.18s">
+      <span class="stat-icon ok">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M12 2L4 5v6c0 5.2 3.4 9.7 8 11 4.6-1.3 8-5.8 8-11V5l-8-3z"
+            stroke="currentColor"
+            stroke-width="1.6"
+          />
+        </svg>
+      </span>
+      <h3>Active Session Details</h3>
+      <p style="margin-top: 6px; font-size: 0.9rem; color: #cbd5e1">
+        <strong>IP:</strong> {{ ip_address }}<br />
+        <strong>OS/Browser:</strong> {{ platform }} &middot; {{ browser }}
+      </p>
+      <small style="color: #94a3b8; display: block; margin-top: 6px"
+        >Encrypted via Argon2id backend.</small
+      >
+    </div>
+  </div>
+
+  <!-- Bottom Details Grid -->
+  <div class="card-grid" style="margin-top: 24px">
+    <!-- Account Information Profile -->
+    <div class="stat-card" data-animate="rise" style="--delay: 0.24s">
+      <h3>User Identity Profile</h3>
+      <ul
+        style="
+          list-style: none;
+          padding: 0;
+          margin: 12px 0 0 0;
+          font-size: 0.9rem;
+          color: #cbd5e1;
+          line-height: 1.8;
+        "
+      >
+        <li><strong>Account User:</strong> {{ user.username }}</li>
+        <li><strong>Email Address:</strong> {{ user.email }}</li>
+        <li><strong>Access Privilege:</strong> Standard User</li>
+        <li>
+          <strong>Last Authentication:</strong>
+          {% if user.last_login_at %} {{ user.last_login_at.strftime('%d %b %Y,
+          %H:%M') }} UTC {% else %} Active Session {% endif %}
+        </li>
+      </ul>
+    </div>
+
+    <!-- Security Activity Timeline -->
+    <div class="stat-card" data-animate="rise" style="--delay: 0.3s">
+      <h3>Recent Security Events</h3>
+      <ul
+        style="
+          list-style: none;
+          padding: 0;
+          margin: 12px 0 0 0;
+          font-size: 0.88rem;
+          color: #cbd5e1;
+          line-height: 1.8;
+        "
+      >
+        <li style="display: flex; justify-content: space-between">
+          <span>🟢 Session Authenticated</span>
+          <span style="color: #94a3b8">Just now</span>
+        </li>
+        <li style="display: flex; justify-content: space-between">
+          <span>🟢 TOTP MFA Challenge</span>
+          <span style="color: #94a3b8">Passed</span>
+        </li>
+        <li style="display: flex; justify-content: space-between">
+          <span>🟢 Password Hash Policy</span>
+          <span style="color: #94a3b8">Argon2id Verified</span>
+        </li>
+        <li style="display: flex; justify-content: space-between">
+          <span>🟢 CAPTCHA Verification</span>
+          <span style="color: #94a3b8">Passed</span>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+  (function updateSecurityScore() {
+    const scoreText = document.getElementById("score-text");
+    const scoreBar = document.getElementById("score-bar");
+
+    if (scoreText && scoreBar) {
+      const color = scoreText.getAttribute("data-color") || "#10b981";
+      const score = scoreBar.getAttribute("data-score") || "100";
+
+      scoreText.style.color = color;
+      scoreBar.style.backgroundColor = color;
+
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          scoreBar.style.width = score + "%";
+        }, 50);
+      });
+    }
+  })();
+</script>
+{% endblock %}

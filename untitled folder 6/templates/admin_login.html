@@ -1,0 +1,58 @@
+{% extends "base.html" %} {% block title %}System Access Gate · Admin{% endblock
+%} {% block content %}
+<div class="auth-grid auth-grid--single">
+  <section class="auth-card" data-animate="rise">
+    <span
+      class="step-tag"
+      style="
+        background: rgba(255, 92, 108, 0.1);
+        border-color: rgba(255, 92, 108, 0.3);
+        color: var(--danger);
+      "
+      >Core Administrative Interface</span
+    >
+    <h1 class="auth-title">Terminal Login</h1>
+    <p class="auth-sub">
+      Identity management node. Unauthorized connection monitoring is active.
+    </p>
+
+    <form method="post" action="{{ url_for('admin_login') }}">
+      <label class="field">
+        <span class="field-label">Admin Email</span>
+        <input
+          type="email"
+          name="email"
+          required
+          placeholder="admin@secureauth.local"
+          style="
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 12px;
+            border-radius: 10px;
+          "
+        />
+      </label>
+
+      <label class="field">
+        <span class="field-label">Master Password</span>
+        <input
+          type="password"
+          name="password"
+          required
+          placeholder="••••••••"
+        />
+      </label>
+
+      <button
+        type="submit"
+        class="btn-primary btn-block"
+        style="background: var(--danger); color: white"
+      >
+        Establish Session
+      </button>
+    </form>
+  </section>
+</div>
+{% endblock %}
