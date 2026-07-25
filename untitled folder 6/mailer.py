@@ -1,31 +1,18 @@
 """
 mailer.py
-Minimal email-sending helper used to deliver one-time passcodes (email OTP)
-via Brevo SMTP Relay.
+Delivers one-time passcodes (email OTP) via Brevo's HTTPS API.
+Uses Port 443 (HTTPS) to bypass Render outbound SMTP network blocks.
 """
 
 import os
-import smtplib
-import ssl
-from email.message import EmailMessage
+import requests
 
-SMTP_HOST = os.environ.get("SMTP_HOST", "smtp-relay.brevo.com")
-SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
-SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "")
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
-SMTP_USE_TLS = os.environ.get("SMTP_USE_TLS", "true").lower() != "false"
-MAIL_FROM = os.environ.get("MAIL_FROM", "")
+BREVO_API_KEY = os.environ.get("BREVO_API_KEY", os.environ.get("SMTP_PASSWORD", ""))
+SENDER_EMAIL = os.environ.get("MAIL_FROM", "phonehtet.2020myat@gmail.com")
 
 
 def send_email_otp(to_email: str, code: str, minutes_valid: int) -> None:
     subject = "Your SecureAuth Verification Code"
-
-    text_body = (
-        f"Hello,\n\n"
-        f"Your one-time verification code is: {code}\n\n"
-        f"This code expires in {minutes_valid} minute(s). "
-        f"If you did not request this code, you can safely ignore this email."
-    )
 
     html_body = f"""
     <!DOCTYPE html>
@@ -33,9 +20,9 @@ def send_email_otp(to_email: str, code: str, minutes_valid: int) -> None:
     <head>
         <meta charset="utf-8">
         <style>
-            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #090d16; color: #f8fafc; margin: 0; padding: 0; }}
-            .container {{ max-width: 500px; margin: 40px auto; background: #111c30; border: 1px solid #22314d; border-radius: 12px; padding: 32px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }}
-            .logo {{ font-size: 20px; font-weight: bold; color: #10b981; margin-bottom: 24px; text-transform: uppercase; letter-spacing: 0.05em; }}
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #090d16; color: #f8fafc; margin: 0; padding: 0; }}
+            .container {{ max-width: 500px; margin: 40px auto; background: #111c30; border: 1px solid #22314d; border-radius: 12px; padding: 32px; }}
+            .logo {{ font-size: 20px; font-weight: bold; color: #10b981; margin-bottom: 24px; text-transform: uppercase; }}
             h2 {{ color: #ffffff; font-size: 22px; margin-top: 0; }}
             p {{ color: #94a3b8; font-size: 15px; line-height: 1.6; }}
             .code-box {{ background: #090d16; border: 1px solid #22314d; color: #10b981; font-size: 32px; font-weight: bold; text-align: center; padding: 16px; border-radius: 8px; margin: 28px 0; font-family: monospace; letter-spacing: 4px; }}
@@ -50,39 +37,48 @@ def send_email_otp(to_email: str, code: str, minutes_valid: int) -> None:
             <p>Use the following secure one-time passcode (OTP) to finalize your multi-factor verification checkpoint layer:</p>
             <div class="code-box">{code}</div>
             <p>This dynamic code is valid for <strong>{minutes_valid} minutes</strong>.</p>
-            <div class="footer">
-                If you didn't initiate this request, you can safely disregard this notice.
-            </div>
+            <div class="footer">If you didn't initiate this request, you can safely disregard this notice.</div>
         </div>
     </body>
     </html>
     """
 
-    if not SMTP_USERNAME or not SMTP_PASSWORD:
+    if not BREVO_API_KEY:
         print("=" * 60)
-        print(f"[DEV MODE - Missing SMTP Credentials] Email OTP for {to_email}")
+        print(f"[DEV MODE - Missing BREVO_API_KEY] Email OTP for {to_email}")
         print(f"Code: {code}")
         print("=" * 60)
         return
 
-    msg = EmailMessage()
-    msg["Subject"] = subject
-    msg["From"] = MAIL_FROM if MAIL_FROM else SMTP_USERNAME
-    msg["To"] = to_email
+    url = "https://api.brevo.com/v3/smtp/email"
+    
+    headers = {
+        "accept": "application/json",
+        "api-key": BREVO_API_KEY,
+        "content-type": "application/json"
+    }
 
-    msg.set_content(text_body)
-    msg.add_alternative(html_body, subtype="html")
+    # Extract clean email address if MAIL_FROM contains display name like "SecureAuth <email@domain.com>"
+    clean_sender = SENDER_EMAIL
+    if "<" in SENDER_EMAIL and ">" in SENDER_EMAIL:
+        clean_sender = SENDER_EMAIL.split("<")[1].split(">")[0]
 
-    context = ssl.create_default_context()
+    payload = {
+        "sender": {
+            "name": "SecureAuth",
+            "email": clean_sender
+        },
+        "to": [
+            {
+                "email": to_email
+            }
+        ],
+        "subject": subject,
+        "htmlContent": html_body
+    }
 
-    try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
-            server.ehlo()
-            if SMTP_USE_TLS:
-                server.starttls(context=context)
-                server.ehlo()
-            server.login(SMTP_USERNAME, SMTP_PASSWORD)
-            server.send_message(msg)
-    except Exception as e:
-        print(f"\n!!! BREVO SMTP ERROR OCCURRED: {e} !!!\n")
-        raise e
+    response = requests.post(url, json=payload, headers=headers, timeout=10)
+
+    if response.status_code not in (200, 201, 202):
+        print(f"\n!!! BREVO API ERROR ({response.status_code}): {response.text} !!!\n")
+        raise Exception(f"Brevo API Error ({response.status_code}): {response.text}")
