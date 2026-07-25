@@ -632,6 +632,7 @@ def admin_update_user(user_id):
     return redirect(url_for("admin_dashboard"))
 
 # --- ADMIN ACTIONS (DELETE) ---
+
 @app.route("/admin/portal/delete/<int:user_id>", methods=["POST"])
 def admin_delete_user(user_id):
     if not session.get("is_admin"):
@@ -639,9 +640,16 @@ def admin_delete_user(user_id):
     csrf_protect()
     
     user = User.query.get_or_404(user_id)
-    db.session.delete(user)
-    db.session.commit()
-    flash(f"User identity profile '{user.username}' successfully purged from database.", "success")
+    
+    try:
+        db.session.delete(user)
+        db.session.commit()
+        flash(f"User identity profile '{user.username}' successfully purged from database.", "success")
+    except Exception as e:
+        db.session.rollback()
+        print(f"!!! ADMIN DELETE ERROR: {e} !!!")
+        flash(f"Failed to delete user '{user.username}' due to a database constraint error.", "error")
+
     return redirect(url_for("admin_dashboard"))
 
 # --- ADMIN LOGOUT ---
