@@ -28,7 +28,7 @@ def send_email_otp(to_email: str, code: str, minutes_valid: int) -> None:
         f"If you did not request this code, you can safely ignore this email."
     )
 
-    # High-end, clean professional HTML layout matching your dark/green theme
+    # High-end, clean professional HTML layout matching dark/green theme
     html_body = f"""
     <!DOCTYPE html>
     <html>
@@ -40,7 +40,7 @@ def send_email_otp(to_email: str, code: str, minutes_valid: int) -> None:
             .logo {{ font-size: 20px; font-weight: bold; color: #10b981; margin-bottom: 24px; text-transform: uppercase; letter-spacing: 0.05em; }}
             h2 {{ color: #ffffff; font-size: 22px; margin-top: 0; }}
             p {{ color: #94a3b8; font-size: 15px; line-height: 1.6; }}
-            .code-box {{ background: #090d16; border: 1px solid #22314d; color: #10b981; font-size: 32px; font-weight: bold; tracking-widest: 0.2em; text-align: center; padding: 16px; border-radius: 8px; margin: 28px 0; font-family: monospace; letter-spacing: 4px; }}
+            .code-box {{ background: #090d16; border: 1px solid #22314d; color: #10b981; font-size: 32px; font-weight: bold; text-align: center; padding: 16px; border-radius: 8px; margin: 28px 0; font-family: monospace; letter-spacing: 4px; }}
             .footer {{ font-size: 12px; color: #64748b; margin-top: 32px; border-top: 1px solid #22314d; padding-top: 16px; }}
         </style>
     </head>
@@ -78,16 +78,18 @@ def send_email_otp(to_email: str, code: str, minutes_valid: int) -> None:
 
     context = ssl.create_default_context()
     try:
-        # Port 465 requires smtplib.SMTP_SSL instead of smtplib.SMTP
+        # Port 465 uses direct SSL
         if SMTP_PORT == 465:
-            with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, context=context, timeout=10) as server:
+            with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, context=context, timeout=15) as server:
                 server.login(SMTP_USERNAME, SMTP_PASSWORD)
                 server.send_message(msg)
         else:
-            # Fallback for standard port 587
-            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+            # Port 587 uses explicit STARTTLS handshaking (Optimal for Render)
+            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
+                server.ehlo()
                 if SMTP_USE_TLS:
                     server.starttls(context=context)
+                    server.ehlo()
                 server.login(SMTP_USERNAME, SMTP_PASSWORD)
                 server.send_message(msg)
     except Exception as e:
